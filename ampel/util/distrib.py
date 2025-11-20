@@ -314,6 +314,9 @@ def get_classes_ancestry(
 
 
 def check_circular_dependencies(package_index: nptyping.NDArray, dependency_index: nptyping.NDArray, check: int, root: int):
+	"""
+	Recursively go through package ancestry and raise an error if root is contained in the tree
+	"""
 	dependencies = dependency_index[package_index == check]
 	if root in dependencies:
 		raise RuntimeError("Circular dependency detected!")
@@ -322,6 +325,10 @@ def check_circular_dependencies(package_index: nptyping.NDArray, dependency_inde
 
 
 def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
+	"""
+	Sort the distributions by ancestry such that dependents always come after their dependencies.
+	Raises a RuntimeError if there are circular dependencies.
+	"""
 	dist_names = list(dist_names)
 	n_dist = len(dist_names)
 	dependency_matrix = np.zeros((n_dist, n_dist))
