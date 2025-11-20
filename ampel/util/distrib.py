@@ -14,6 +14,7 @@ from importlib import metadata
 from pathlib import Path
 
 import numpy as np
+from numpy import typing as nptyping
 
 # NB: PackagePath implements read_text(), but is not a subclass of Path
 PathLike: TypeAlias = Path | metadata.PackagePath
@@ -312,6 +313,14 @@ def get_classes_ancestry(
 	return ancestry_map
 
 
+def check_circular_dependencies(package_index: nptyping.NDArray, dependency_index: nptyping.NDArray, check: int, root: int):
+	dependencies = dependency_index[package_index == check]
+	if root in dependencies:
+		raise RuntimeError("Circular dependency detected!")
+	for dependency in dependencies:
+		check_circular_dependencies(package_index, dependency_index, dependency, root)
+
+
 def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
 	dist_names = list(dist_names)
 	n_dist = len(dist_names)
@@ -327,13 +336,10 @@ def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
 			if any([dep.startswith(jdist) for dep in deps]):
 				dependency_matrix[i, j] = 1
 
-	# if an element and a transposed element are non-zero, there are circular dependencies
-	circular_dependency_matrix = dependency_matrix.astype(bool) & dependency_matrix.T.astype(bool)
-	if any(circular_dependency_matrix.flatten()):
-		msg = "Circular dependencies: "
-		for i, j in zip(*np.where(np.triu(circular_dependency_matrix)), strict=True):
-			msg += f"{dist_names[i]} and {dist_names[j]}, "
-		raise RuntimeError(msg[:-2])
+	# check for circular dependencies
+	package_index, dependency_index = np.where(dependency_matrix)
+	for i in np.unique(package_index):
+		check_circular_dependencies(package_index, dependency_index, i, i)
 
 	# iterate through the top right off-diagonal of the matrix and swap
     # distributions order if a dependency would be installed after the dependent
