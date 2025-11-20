@@ -313,40 +313,46 @@ def get_classes_ancestry(
 
 
 def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
-	# copy input
 	dist_names = list(dist_names)
-
 	n_dist = len(dist_names)
 	dependency_matrix = np.zeros((n_dist, n_dist))
 
 	for i, idist in enumerate(dist_names):
-
-		# get dependencies for distribution i
 		md = metadata.metadata(idist)
 		deps = md.get_all("Requires-Dist")
 
 		# check if any of the dependencies are also ampel distributions marked to be scanned
-		# and modify matrix accordingly
+        # and modify matrix accordingly
 		for j, jdist in enumerate(dist_names):
 			if any([dep.startswith(jdist) for dep in deps]):
 				dependency_matrix[i, j] = 1
 
+	# if an element and a transposed element are non-zero, there are circular dependencies
+	circular_dependency_matrix = dependency_matrix & dependency_matrix.T
+	if any(circular_dependency_matrix):
+		msg = "Circular dependencies: "
+		for i, j in zip(np.where(np.triu(dependency_matrix & dependency_matrix.T)), strict=True):
+			msg += f"{dist_names[i]} and {dist_names[j]}, "
+		raise RuntimeError(msg[:-2])
+
 	# iterate through the top right off-diagonal of the matrix and swap
-	# distributions order if a dependency would be installed after the dependent
-	# package
+    # distributions order if a dependency would be installed after the dependent
+    # package
 	for idist in range(n_dist):
 		for jdist in range(idist, n_dist):
 			if dependency_matrix[idist, jdist]:
-
-				# if the transposed element is also non-zero, there are circular dependencies:
-				if dependency_matrix[jdist, idist]:
-					raise RuntimeError(f"Circular dependencies: {dist_names[idist]} and {dist_names[jdist]}!")
-
 				# if not, swap row and column
-				dependency_matrix[[idist, jdist], :] = dependency_matrix[[jdist, idist], :]
-				dependency_matrix[:, [idist, jdist]] = dependency_matrix[:, [jdist, idist]]
+				dependency_matrix[[idist, jdist], :] = dependency_matrix[
+                    [jdist, idist], :
+                ]
+				dependency_matrix[:, [idist, jdist]] = dependency_matrix[
+                    :, [jdist, idist]
+                ]
 
 				# swap distribution order accordingly
-				dist_names[idist], dist_names[jdist] = dist_names[jdist], dist_names[idist]
+				dist_names[idist], dist_names[jdist] = (
+                    dist_names[jdist],
+                    dist_names[idist],
+                )
 
 	return dist_names
