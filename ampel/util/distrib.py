@@ -328,10 +328,10 @@ def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
 				dependency_matrix[i, j] = 1
 
 	# if an element and a transposed element are non-zero, there are circular dependencies
-	circular_dependency_matrix = dependency_matrix & dependency_matrix.T
-	if any(circular_dependency_matrix):
+	circular_dependency_matrix = dependency_matrix.astype(bool) & dependency_matrix.T.astype(bool)
+	if any(circular_dependency_matrix.flatten()):
 		msg = "Circular dependencies: "
-		for i, j in zip(np.where(np.triu(dependency_matrix & dependency_matrix.T)), strict=True):
+		for i, j in zip(*np.where(np.triu(circular_dependency_matrix)), strict=True):
 			msg += f"{dist_names[i]} and {dist_names[j]}, "
 		raise RuntimeError(msg[:-2])
 
