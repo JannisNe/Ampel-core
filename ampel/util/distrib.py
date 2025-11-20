@@ -337,22 +337,23 @@ def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
 
 	# iterate through the top right off-diagonal of the matrix and swap
     # distributions order if a dependency would be installed after the dependent
-    # package
-	for idist in range(n_dist):
-		for jdist in range(idist, n_dist):
-			if dependency_matrix[idist, jdist]:
-				# if not, swap row and column
-				dependency_matrix[[idist, jdist], :] = dependency_matrix[
-                    [jdist, idist], :
-                ]
-				dependency_matrix[:, [idist, jdist]] = dependency_matrix[
-                    :, [jdist, idist]
-                ]
+    # package. Do that until all entries are in the lower left
+	while np.triu(dependency_matrix).flatten().sum() > 0:
+		for idist in range(n_dist):
+			for jdist in range(idist, n_dist):
+				if dependency_matrix[idist, jdist]:
+					# if not, swap row and column
+					dependency_matrix[[idist, jdist], :] = dependency_matrix[
+						[jdist, idist], :
+					]
+					dependency_matrix[:, [idist, jdist]] = dependency_matrix[
+						:, [jdist, idist]
+					]
 
-				# swap distribution order accordingly
-				dist_names[idist], dist_names[jdist] = (
-                    dist_names[jdist],
-                    dist_names[idist],
-                )
+					# swap distribution order accordingly
+					dist_names[idist], dist_names[jdist] = (
+						dist_names[jdist],
+						dist_names[idist],
+					)
 
 	return dist_names
