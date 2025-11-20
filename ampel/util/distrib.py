@@ -13,6 +13,8 @@ from collections.abc import Generator, MutableSequence, Sequence, Iterable
 from importlib import metadata
 from pathlib import Path
 
+import numpy as np
+
 # NB: PackagePath implements read_text(), but is not a subclass of Path
 PathLike: TypeAlias = Path | metadata.PackagePath
 PathList: TypeAlias = MutableSequence[PathLike]
@@ -308,3 +310,43 @@ def get_classes_ancestry(
 		# print(fname, resolved)
 
 	return ancestry_map
+
+
+def sort_dependent_distributions(dist_names: list[str]) -> list[str]:
+	# copy input
+	dist_names = list(dist_names)
+
+	n_dist = len(dist_names)
+	dependency_matrix = np.zeros((n_dist, n_dist))
+
+	for i, idist in enumerate(dist_names):
+
+		# get dependencies for distribution i
+		md = metadata.metadata(idist)
+		deps = md.get_all("Requires-Dist")
+
+		# check if any of the dependencies are also ampel distributions marked to be scanned
+		# and modify matrix accordingly
+		for j, jdist in enumerate(dist_names):
+			if any([dep.startswith(jdist) for dep in deps]):
+				dependency_matrix[i, j] = 1
+
+	# iterate through the top right off-diagonal of the matrix and swap
+	# distributions order if a dependency would be installed after the dependent
+	# package
+	for idist in range(n_dist):
+		for jdist in range(idist, n_dist):
+			if dependency_matrix[idist, jdist]:
+
+				# if the transposed element is also non-zero, there are circular dependencies:
+				if dependency_matrix[jdist, idist]:
+					raise RuntimeError(f"Circular dependencies: {dist_names[idist]} and {dist_names[jdist]}!")
+
+				# if not, swap row and column
+				dependency_matrix[[idist, jdist], :] = dependency_matrix[[jdist, idist], :]
+				dependency_matrix[:, [idist, jdist]] = dependency_matrix[:, [jdist, idist]]
+
+				# swap distribution order accordingly
+				dist_names[idist], dist_names[jdist] = dist_names[jdist], dist_names[idist]
+
+	return dist_names

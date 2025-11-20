@@ -19,7 +19,7 @@ from ampel.config.builder.ConfigBuilder import ConfigBuilder
 from ampel.config.builder.DisplayOptions import DisplayOptions
 from ampel.log.AmpelLogger import SHOUT, VERBOSE, AmpelLogger
 from ampel.util.distrib import PathLike, PathList, get_dist_names, \
-	get_files, get_classes_info_from_dist, get_classes_ancestry
+	get_files, get_classes_info_from_dist, get_classes_ancestry, sort_dependent_distributions
 
 class DistConfigBuilder(ConfigBuilder):
 	"""
@@ -52,7 +52,7 @@ class DistConfigBuilder(ConfigBuilder):
 		:param exts: loads only conf files with these extensions
 		:param exclude: exclude distribution by name
 		"""
-		dist_names = get_dist_names(prefixes)
+		dist_names = sort_dependent_distributions(get_dist_names(prefixes))
 
 		if dist_names:
 			self.logger.log(SHOUT, f"Detected ampel components: {', '.join(repr(name) for name in dist_names)}")
