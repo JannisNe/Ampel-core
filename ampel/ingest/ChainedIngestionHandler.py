@@ -726,6 +726,10 @@ class ChainedIngestionHandler:
 					else:
 						code = DocumentCode.OK
 						macts[0]['action'] |= MetaActionCode.SET_CODE
+					if tres.body:
+						body |= tres.body
+						jentry['action'] |= JournalActionCode.T1_ADD_BODY
+						macts[0]['action'] |= MetaActionCode.ADD_BODY
 				else:
 					t1_dps = tres
 					code = DocumentCode.OK
