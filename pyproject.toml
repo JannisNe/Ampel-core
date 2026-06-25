@@ -75,13 +75,11 @@ types-psutil = "^5.9.5.20240516"
 requires = ["poetry-core>=1.0.0", "setuptools>=40.8.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.pytest]
+[tool.pytest.ini_options]
 markers = [
     "ampel_template_filename: change the template file that is being used to configure the ampel job",
     "full: run full integration test (slow!)",
 ]
-
-[tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--showlocals -r a"
 filterwarnings = [
